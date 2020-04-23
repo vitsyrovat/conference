@@ -24,27 +24,27 @@ class ModelTest(TestCase):
 
         self.assertEqual(user.email, email.lower())
 
-    def test_new_user_no_email(self):
-        """Test creating user with no email raises error"""
+    def test_create_user_without_email(self):
+        """Creating a user without email raises ValueError"""
         email = None
         with self.assertRaises(ValueError):
             get_user_model().objects.create_user(
-                email, 'asdjhfksjdh'
+                email, 'test654654'
             )
 
-    def test_new_user_valid_email(self):
-        """Test creating new user with an invalid email raises error"""
+    def test_create_user_with_invalid_email(self):
+        """Creating user with invalid email raises ValidationError"""
+        test_emails = ['pako', ' ', 'email.com', 'jesid@seznam',
+                       '@seznam.cz', 'joko@']
 
-        email1 = 'oijo@'
-        email2 = 'koko@loko'
-        email3 = '--'
+        def bulk_email_test(email):
+            with self.assertRaises(ValidationError):
+                get_user_model().objects.create_user(
+                    email=email,
+                    password='aslkjd676546'
+                )
 
-        with self.assertRaises(ValidationError):
-            get_user_model().objects.create_user(email1, 'ksdfjklsldk')
-        with self.assertRaises(ValidationError):
-            get_user_model().objects.create_user(email2, 'lsdkjfou5i')
-        with self.assertRaises(ValidationError):
-            get_user_model().objects.create_user(email3, 'laksflks11d')
+        [bulk_email_test(email) for email in test_emails]
 
     def test_create_new_superuser(self):
         """Test creating a new superuser"""
