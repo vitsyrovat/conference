@@ -7,6 +7,7 @@ from rest_framework import status
 
 
 CREATE_USER_URL = reverse('user:create')
+CREATE_TOKEN_URL = reverse('user:token')
 
 
 def create_user(**params):
@@ -100,3 +101,50 @@ class PublicUserApiTests(TestCase):
         # ------------------------------------------
 
         [bulk_password_test(password) for password in passwords]
+
+    def test_create_token(self):
+        """Token is returned for a valid user"""
+        payload = {
+            'name': 'pako',
+            'email': 'pako@email.com',
+            'password': 'sdko6548as'
+        }
+        create_user(**payload)
+
+        response = self.client.post(CREATE_TOKEN_URL, payload)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('token', response.data)
+        self.assertContains(response, 'token')
+        # last assertion replaces the both above
+
+    def test_create_token_invalid_password(self):
+        """Token is not returned if invalid credentials provided"""
+        create_user(email='koko@mail.com', password='secretpassword555')
+        response = self.client.post(
+            CREATE_TOKEN_URL,
+            {
+                'email': 'koko@mail.com',
+                'password': 'wrongpassword001'
+            })
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn('token', response.data)
+        self.assertNotContains(response, 'token', status_code=400)
+        # last assertion replaces the both above
+
+    def test_create_token_non_existing_user(self):
+        """Token is not provided to non-existing user"""
+        payload = {
+            'email': 'pako@email.com',
+            'password': 'hasjf8765as'
+        }
+        response = self.client.post(CREATE_TOKEN_URL, payload)
+        self.assertNotContains(response, 'token', status_code=400)
+
+    def test_create_token_no_password(self):
+        """Token not returned if password not provided"""
+        create_user(email='koko@mail.com', password='koasd5465fsdf')
+        response = self.client.post(
+            CREATE_TOKEN_URL,
+            {'email': 'koko@mail.com', 'password': ''}
+        )
+        self.assertNotContains(response, 'token', status_code=400)
