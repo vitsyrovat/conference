@@ -8,6 +8,7 @@ from rest_framework import status
 
 CREATE_USER_URL = reverse('user:create')
 CREATE_TOKEN_URL = reverse('user:token')
+ME_URL = reverse('user:me')
 
 
 def create_user(**params):
@@ -148,3 +149,49 @@ class PublicUserApiTests(TestCase):
             {'email': 'koko@mail.com', 'password': ''}
         )
         self.assertNotContains(response, 'token', status_code=400)
+
+    def test_retrieve_user_unauthorized(self):
+        """Updating user without authentication fails"""
+        # create_user(email='koko@email.com', password='asd557sdfx')
+        res = self.client.get(ME_URL)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class PrivateUserApiTests(TestCase):
+    """Test API requests that require authentication"""
+
+    def setUp(self):
+        self.user = create_user(
+            email='pako@amail.com',
+            password='asd453xcvf',
+            name='meee'
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_retrieve_user(self):
+        """User details are retrieved for authenticated user"""
+        res = self.client.get(ME_URL)
+
+        self.assertContains(res, 'email')
+        self.assertEqual(res.data, {
+            'email': self.user.email,
+            'name': self.user.name
+        })
+
+    def test_post_me_not_allowed(self):
+        """POST is not allowed on me url"""
+        res = self.client.post(ME_URL, {})
+        self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_update_user_profile(self):
+        """Updating user profile for authenticated user"""
+        payload = {
+            'email': 'new@email.com',
+            'password': 'newpassword777'
+        }
+        res = self.client.patch(ME_URL, payload)
+        self.user.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.user.email, payload['email'])
+        self.assertTrue(self.user.check_password(payload['password']))
