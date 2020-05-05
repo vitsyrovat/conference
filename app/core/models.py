@@ -47,3 +47,59 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
+
+
+class Affiliation(models.Model):
+    """Model for affiliations"""
+    institution = models.CharField(max_length=255, blank=True)
+    department = models.CharField(max_length=255, blank=True)
+    street_address = models.CharField(max_length=255)
+    city = models.CharField(max_length=255)
+    zip_code = models.PositiveIntegerField()
+    country = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f'{self.department}, {self.institution}'
+
+
+class Author(models.Model):
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
+
+
+class Contribution(models.Model):
+    title = models.CharField(max_length=255)
+    authors = models.ManyToManyField(Author, through='Authorship')
+    presentation_form = models.CharField(
+        max_length=16,
+        choices=[
+            ('oral', 'Oral'),
+            ('poster', 'Poster'),
+        ],
+        default='Oral',
+    )
+
+    def __str__(self):
+        return f"{self.title[0:20]}..."
+
+
+class Authorship(models.Model):
+    """Model for unique author-contribution relationships"""
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    is_main_author = models.BooleanField(default=False)
+    contribution = models.ForeignKey(Contribution, on_delete=models.CASCADE)
+    affiliation = models.ManyToManyField(Affiliation)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'contribution'],
+                name='unique_author_contribution'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.author} from {self.affiliation.all()}: \
+            {self.contribution}"
