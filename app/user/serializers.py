@@ -1,7 +1,6 @@
-from django.contrib.auth import get_user_model, password_validation
+from django.contrib.auth import get_user_model, password_validation, authenticate
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
-from django.contrib.auth import authenticate
 
 
 class UserSerializer(serializers.ModelSerializer):
