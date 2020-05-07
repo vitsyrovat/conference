@@ -1,10 +1,19 @@
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, \
                                         PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 
+import datetime
+
 # from django.utils import timezone
+
+REGISTRATION_DEADLINE = datetime.date(2020, 6, 15)
+REGISTRATION_FEES = {
+    'Normal': 800,
+    'Late': 1200,
+}
 
 
 class UserManager(BaseUserManager):
@@ -70,6 +79,10 @@ class Author(models.Model):
 
 
 class Contribution(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
     title = models.CharField(max_length=255)
     authors = models.ManyToManyField(Author, through='Authorship')
     presentation_form = models.CharField(
@@ -80,9 +93,26 @@ class Contribution(models.Model):
         ],
         default='Oral',
     )
+    created = models.DateTimeField(auto_now_add=True)
+    last_modified = models.DateTimeField(auto_now=True)
+    discount = models.IntegerField(default=0)
+    # discount to be set by admin in negative CZK
+
+    @property
+    def registration_period(self):
+        """Returns registration period based on date"""
+        if self.created.date() < REGISTRATION_DEADLINE:
+            return 'Normal'
+        else:
+            return 'Late'
 
     def __str__(self):
-        return f"{self.title[0:20]}..."
+        return f"{self.title[0:20]}... registered by {self.user}"
+
+    @property
+    def registration_fee(self):
+        """Return registration fee based on registration_period and discount"""
+        return REGISTRATION_FEES[self.registration_period] + self.discount
 
 
 class Authorship(models.Model):

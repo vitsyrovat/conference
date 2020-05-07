@@ -72,12 +72,19 @@ class ModelTest(TestCase):
         """Creating authorship for the same author and contribution
         twice fails
         """
+        user = get_user_model().objects.create_user(
+            'test@dev.com',
+            'asdaf6547'
+        )
+
         name = 'Jan Sychra'
         title = 'Ptaci Brna'
-
         author = Author.objects.create(name=name)
-        contribution = Contribution.objects.create(title=title)
 
+        contribution = Contribution.objects.create(
+            title=title,
+            user=user
+        )
         Authorship.objects.create(
             author=author,
             contribution=contribution
@@ -91,12 +98,19 @@ class ModelTest(TestCase):
 
     def test_create_author_with_variable_affiliations(self):
         """One author may have different affiliations in contributions"""
+        user = get_user_model().objects.create_user(
+            'test@dev.com',
+            'asdaf6547'
+        )
+
         author = Author.objects.create(name='Jan Sychra')
         contribution1 = Contribution.objects.create(
             title='ptaci',
+            user=user,
         )
         contribution2 = Contribution.objects.create(
             title='brouci',
+            user=user,
         )
         contribution1.authors.add(author)
         contribution2.authors.add(author)
