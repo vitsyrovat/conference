@@ -6,7 +6,7 @@ from contribution import views
 app_name = 'contribution'
 
 router = DefaultRouter()
-router.register('contribution', views.ContributionViewSet)
+router.register('', views.ContributionViewSet)
 
 urlpatterns = [
     path('', include(router.urls))

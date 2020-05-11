@@ -78,6 +78,37 @@ class Author(models.Model):
         return self.name
 
 
+class ContributionManager(models.Manager):
+
+    def create(self, title, presentation_form, authorships):
+        # 1 create  contribution without authors
+        contribution = Contribution(
+            title=title,
+            presentation_form=presentation_form,
+            user=self.request.user
+        )
+        contribution.save()
+        # 2 for each authorship create author and authorship instance,
+        # and add the author to the authorship instance.
+        for authorship_data in authorships:
+            author = Author(name=authorship_data['author_name'])
+            author.save()
+            
+            authorship = Authorship(
+                author=author,
+                is_main_author=authorship_data['is_main_author'],
+                contribution=contribution,
+            )
+
+            # 4 for each affiliation add it to the authorsip instance.
+            authorship.affiliation.add(authorship_data['affiliations'])
+
+            authorship.save()
+
+        # 5 finally add the user to the contribution
+        return contribution
+
+
 class Contribution(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -93,10 +124,15 @@ class Contribution(models.Model):
         ],
         default='Oral',
     )
+
+    fee_payed = models.BooleanField(default=False)
+    
     created = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
     discount = models.IntegerField(default=0)
     # discount to be set by admin in negative CZK
+
+    objects = ContributionManager
 
     @property
     def registration_period(self):
@@ -117,9 +153,16 @@ class Contribution(models.Model):
 
 class Authorship(models.Model):
     """Model for unique author-contribution relationships"""
-    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        Author,
+        on_delete=models.CASCADE,
+        related_name='authorships'
+    )
     is_main_author = models.BooleanField(default=False)
-    contribution = models.ForeignKey(Contribution, on_delete=models.CASCADE)
+    contribution = models.ForeignKey(
+        Contribution,
+        on_delete=models.CASCADE,
+        related_name='authorships')
     affiliation = models.ManyToManyField(Affiliation)
 
     class Meta:
